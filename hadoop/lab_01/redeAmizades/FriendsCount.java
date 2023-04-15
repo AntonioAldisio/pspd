@@ -23,8 +23,8 @@ public class FriendsCount {
             throws IOException, InterruptedException {
         String[] valores = value.toString().split("\t");
         if (valores.length == 2) {
-            entrada.set(valores[0]);
-            context.write(entrada, um);
+            word.set(valores[0]);
+            context.write(word, one);
         }
     }
   }
@@ -48,7 +48,7 @@ public class FriendsCount {
   public static void main(String[] args) throws Exception {
     Configuration conf = new Configuration();
     Job job = Job.getInstance(conf, "word count");
-    job.setJarByClass(WordCount.class);
+    job.setJarByClass(FriendsCount.class);
     job.setMapperClass(TokenizerMapper.class);
     job.setCombinerClass(IntSumReducer.class);
     job.setReducerClass(IntSumReducer.class);
