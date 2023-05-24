@@ -10,19 +10,24 @@ int compute_julia_pixel(int x, int y, int largura, int altura, float tint_bias, 
     fprintf(stderr,"Invalid (%d,%d) pixel coordinates in a %d x %d image\n", x, y, largura, altura);
     return -1;
   }
+
   // "Zoom in" to a pleasing view of the Julia set
   float X_MIN = -1.6, X_MAX = 1.6, Y_MIN = -0.9, Y_MAX = +0.9;
   float float_y = (Y_MAX - Y_MIN) * (float)y / altura + Y_MIN ;
   float float_x = (X_MAX - X_MIN) * (float)x / largura  + X_MIN ;
+
   // Point that defines the Julia set
-  float julia_real = -.79;
-  float julia_img = .15;
-  // Maximum number of iteration
+  float julia_real = -0.79;
+  float julia_img = 0.15;
+
+  // Maximum number of iterations
   int max_iter = 300;
+
   // Compute the complex series convergence
-  float real=float_y, img=float_x;
+  float real = float_y, img = float_x;
   int num_iter = max_iter;
-  while (( img * img + real * real < 2 * 2 ) && ( num_iter > 0 )) {
+
+  while ((img * img + real * real < 2 * 2) && (num_iter > 0)) {
     float xtemp = img * img - real * real + julia_real;
     real = 2 * img * real + julia_img;
     img = xtemp;
@@ -30,37 +35,33 @@ int compute_julia_pixel(int x, int y, int largura, int altura, float tint_bias, 
   }
 
   // Paint pixel based on how many iterations were used, using some funky colors
-  float color_bias = (float) num_iter / max_iter;
-  rgb[0] = (num_iter == 0 ? 200 : - 500.0 * pow(tint_bias, 1.2) *  pow(color_bias, 1.6));
-  rgb[1] = (num_iter == 0 ? 100 : -255.0 *  pow(color_bias, 0.3));
-  rgb[2] = (num_iter == 0 ? 100 : 255 - 255.0 * pow(tint_bias, 1.2) * pow(color_bias, 3.0));
+  float color_bias = (float)num_iter / max_iter;
+  rgb[0] = (num_iter == 0 ? 200 : (unsigned char)(-500.0 * pow(tint_bias, 1.2) * pow(color_bias, 1.6)));
+  rgb[1] = (num_iter == 0 ? 100 : (unsigned char)(-255.0 * pow(color_bias, 0.3)));
+  rgb[2] = (num_iter == 0 ? 100 : (unsigned char)(255 - 255.0 * pow(tint_bias, 1.2) * pow(color_bias, 3.0)));
 
   return 0;
-} /*fim compute julia pixel */
+}
 
 int write_bmp_header(FILE *f, int largura, int altura) {
-
-  unsigned int row_size_in_bytes = largura * 3 +
-	  ((largura * 3) % 4 == 0 ? 0 : (4 - (largura * 3) % 4));
+  unsigned int row_size_in_bytes = largura * 3 + ((largura * 3) % 4 == 0 ? 0 : (4 - (largura * 3) % 4));
 
   // Define all fields in the bmp header
   char id[2] = "BM";
-  unsigned int filesize = 54 + (int)(row_size_in_bytes * altura * sizeof(char));
-  short reserved[2] = {0,0};
+  unsigned int filesize = 54 + (int)(row_size_in_bytes * altura);
+  short reserved[2] = {0, 0};
   unsigned int offset = 54;
-
   unsigned int size = 40;
   unsigned short planes = 1;
   unsigned short bits = 24;
   unsigned int compression = 0;
-  unsigned int image_size = largura * altura * 3 * sizeof(char);
+  unsigned int image_size = row_size_in_bytes * altura;
   int x_res = 0;
   int y_res = 0;
   unsigned int ncolors = 0;
   unsigned int importantcolors = 0;
 
-  // Write the bytes to the file, keeping track of the
-  // number of written "objects"
+  // Write the bytes to the file, keeping track of the number of written "objects"
   size_t ret = 0;
   ret += fwrite(id, sizeof(char), 2, f);
   ret += fwrite(&filesize, sizeof(int), 1, f);
@@ -78,9 +79,10 @@ int write_bmp_header(FILE *f, int largura, int altura) {
   ret += fwrite(&ncolors, sizeof(int), 1, f);
   ret += fwrite(&importantcolors, sizeof(int), 1, f);
 
-  // Success means that we wrote 17 "objects" successfully
-  return (ret != 17);
-} /* fim write bmp-header */
+  // Success means that we wrote 15 "objects" successfully
+  return (ret != 15);
+}
+
 
 
 int main(int argc, char *argv[]) {
@@ -135,21 +137,34 @@ int main(int argc, char *argv[]) {
     // Liberação de memória do array RGB
     free(rgb);
 
-    // Gravação serial do arquivo por ordem de rank
-    if (rank == 0) {
-        output_file = fopen(OUTFILE, "w");
-        write_bmp_header(output_file, largura, altura);
-    }
+    // Criação de um arquivo temporário para cada processo
+    char temp_filename[20];
+    sprintf(temp_filename, "temp_%d.bmp", rank);
+    output_file = fopen(temp_filename, "w");
+    write_bmp_header(output_file, largura, local_height);
+    fwrite(pixel_array, sizeof(unsigned char), local_height * largura * 3, output_file);
+    fclose(output_file);
 
-    // Espera para garantir que o arquivo seja aberto antes da gravação
+    // Sincronização de todos os processos
     MPI_Barrier(MPI_COMM_WORLD);
 
-    // Gravação dos dados do array de pixels no arquivo
-    MPI_File output_mpi_file;
-    MPI_File_open(MPI_COMM_WORLD, OUTFILE, MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL, &output_mpi_file);
-    MPI_File_seek(output_mpi_file, local_start * largura * 3, MPI_SEEK_SET);
-    MPI_File_write(output_mpi_file, pixel_array, (local_end - local_start) * largura * 3, MPI_UNSIGNED_CHAR, MPI_STATUS_IGNORE);
-    MPI_File_close(&output_mpi_file);
+    // O processo de rank 0 realiza a gravação serial dos arquivos em ordem
+    if (rank == 0) {
+        FILE *final_output_file = fopen(OUTFILE, "w");
+        write_bmp_header(final_output_file, largura, altura);
+        for (int i = 0; i < size; i++) {
+            sprintf(temp_filename, "temp_%d.bmp", i);
+            FILE *temp_file = fopen(temp_filename, "r");
+            fseek(temp_file, 54, SEEK_SET); // Ignorar o cabeçalho do arquivo temporário
+            unsigned char *buffer = malloc(local_height * largura * 3 * sizeof(unsigned char));
+            fread(buffer, sizeof(unsigned char), local_height * largura * 3, temp_file);
+            fwrite(buffer, sizeof(unsigned char), local_height * largura * 3, final_output_file);
+            free(buffer);
+            fclose(temp_file);
+            remove(temp_filename); // Remover o arquivo temporário
+        }
+        fclose(final_output_file);
+    }
 
     // Liberação de memória do array de pixels
     free(pixel_array);
