@@ -38,7 +38,6 @@ int compute_julia_pixel(int x, int y, int largura, int altura, float tint_bias, 
 
   return 0;
 }
-
 int main(int argc, char *argv[]) {
     int rank, size, n;
     int area = 0, largura = 0, altura = 0, local_i = 0;
@@ -99,9 +98,9 @@ int main(int argc, char *argv[]) {
     // Calcula o deslocamento em bytes para o rank atual
     MPI_Offset displacement = offset * largura * 3 * sizeof(unsigned char);
 
-    // Grava os pixels no arquivo usando MPI_File_write_ordered
-    MPI_File_set_view(output_file, displacement, MPI_UNSIGNED_CHAR, pixel_type, "native");
-    MPI_File_write_ordered(output_file, pixel_array, local_area / 3, pixel_type, MPI_STATUS_IGNORE);
+    // Grava os pixels no arquivo usando MPI_File_set_view
+    MPI_File_set_view(output_file, displacement, MPI_BYTE, pixel_type, "native");
+    MPI_File_write_all(output_file, pixel_array, local_area / 3, pixel_type, MPI_STATUS_IGNORE);
 
     // Fecha o arquivo
     MPI_File_close(&output_file);
