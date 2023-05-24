@@ -88,21 +88,12 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // Cria um tipo de dado MPI para representar um pixel (3 unsigned chars)
-    MPI_Datatype pixel_type;
-    MPI_Type_contiguous(3, MPI_UNSIGNED_CHAR, &pixel_type);
-    MPI_Type_commit(&pixel_type);
-
     // Cria um arquivo MPI
     MPI_File output_file;
     MPI_File_open(MPI_COMM_WORLD, OUTFILE, MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL, &output_file);
 
-    // Calcula o deslocamento em bytes para o rank atual
-    MPI_Offset displacement = offset * largura * 3 * sizeof(unsigned char);
-
-    // Grava os pixels no arquivo usando MPI_File_set_view
-    MPI_File_set_view(output_file, displacement, MPI_UNSIGNED_CHAR, MPI_UNSIGNED_CHAR, "native");
-    MPI_File_write_all(output_file, pixel_array, local_area, pixel_type, MPI_STATUS_IGNORE);
+    // Grava os pixels em paralelo, obedecendo o offset de cada processo
+    MPI_File_write_ordered(output_file, pixel_array, local_area, MPI_UNSIGNED_CHAR, MPI_STATUS_IGNORE);
 
     // Fecha o arquivo MPI
     MPI_File_close(&output_file);
@@ -111,7 +102,6 @@ int main(int argc, char *argv[]) {
     free(rgb);
     free(pixel_array);
 
-    MPI_Type_free(&pixel_type);
     MPI_Finalize();
     return 0;
 }
