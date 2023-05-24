@@ -1,3 +1,16 @@
+/*
+    PSPD 2023 - 1
+    Alunos: Antonio Aldisio        202028211
+            Fernando Miranda Calil 190106565
+            Lorrany Oliveira Souza 180113992
+
+    Como compilar:
+    $ mpicc fractalmpiserial.c -o fractalmpiserial -lm
+
+    Como rodar:
+    $ mpirun -np 4 fractalmpiserial 1000
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
