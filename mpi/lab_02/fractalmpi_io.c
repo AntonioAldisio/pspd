@@ -64,8 +64,8 @@ int main(int argc, char *argv[]) {
     int rows_per_process = altura / size;
     int remaining_rows = altura % size;
 
-    // Calcula o deslocamento (offset) para cada rank
-    int offset = rank * rows_per_process;
+    // Calcula o deslocamento local para cada rank
+    int local_offset = rank * rows_per_process;
 
     // Calcula o número de linhas para cada rank
     int num_rows = rows_per_process + (rank < remaining_rows ? 1 : 0);
@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
     // Computa os pixels para o rank atual
     for (int i = 0; i < num_rows; i++) {
         for (int j = 0; j < largura * 3; j += 3) {
-            compute_julia_pixel(j / 3, offset + i, largura, altura, 1.0, rgb);
+            compute_julia_pixel(j / 3, local_offset + i, largura, altura, 1.0, rgb);
             pixel_array[local_i] = rgb[0];
             local_i++;
             pixel_array[local_i] = rgb[1];
@@ -92,8 +92,14 @@ int main(int argc, char *argv[]) {
     MPI_File output_file;
     MPI_File_open(MPI_COMM_WORLD, OUTFILE, MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL, &output_file);
 
-    // Grava os pixels em paralelo, obedecendo o offset de cada processo
-    MPI_File_write_ordered(output_file, pixel_array, local_area, MPI_UNSIGNED_CHAR, MPI_STATUS_IGNORE);
+    // Calcula o deslocamento global para cada rank
+    MPI_Offset global_offset;
+    MPI_Exscan(&local_area, &global_offset, 1, MPI_OFFSET, MPI_SUM, MPI_COMM_WORLD);
+    global_offset += local_offset * largura * 3;
+
+    // Grava os pixels em paralelo, respeitando o deslocamento global
+    MPI_File_set_view(output_file, global_offset, MPI_UNSIGNED_CHAR, MPI_UNSIGNED_CHAR, "native");
+    MPI_File_write_all(output_file, pixel_array, local_area, MPI_UNSIGNED_CHAR, MPI_STATUS_IGNORE);
 
     // Fecha o arquivo MPI
     MPI_File_close(&output_file);
