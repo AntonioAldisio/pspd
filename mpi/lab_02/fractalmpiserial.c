@@ -84,22 +84,18 @@ int write_bmp_header(FILE *f, int largura, int altura) {
 }
 
 
-
 int main(int argc, char *argv[]) {
-    int n, rank, size;
+    int rank, size, n;
     int area = 0, largura = 0, altura = 0, local_i = 0;
-    FILE *output_file;
     unsigned char *pixel_array, *rgb;
 
-    MPI_Init(&argc, &argv); // Inicialização do MPI
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank); // Obtenção do rank do processo
-    MPI_Comm_size(MPI_COMM_WORLD, &size); // Obtenção do número total de processos
+    MPI_Init(&argc, &argv);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
 
     if ((argc <= 1) || (atoi(argv[1]) < 1)) {
-        if (rank == 0) {
-            fprintf(stderr,"Entre 'N' como um inteiro positivo! \n");
-        }
-        MPI_Finalize(); // Finalização do MPI
+        fprintf(stderr, "Entre 'N' como um inteiro positivo! \n");
+        MPI_Finalize();
         return -1;
     }
 
@@ -108,23 +104,25 @@ int main(int argc, char *argv[]) {
     largura = 2 * n;
     area = altura * largura * 3;
 
-    // Divisão do trabalho entre os processos
-    int local_height = altura / size;
-    int local_start = rank * local_height;
-    int local_end = local_start + local_height;
+    // Calcula o número de linhas por processo
+    int rows_per_process = altura / size;
+    int remaining_rows = altura % size;
 
-    if (rank == size - 1) {
-        local_end = altura;
-    }
+    // Calcula o deslocamento (offset) para cada rank
+    int offset = rank * rows_per_process;
 
-    // Alocação de memória para o array de pixels e o array RGB
-    pixel_array = calloc(local_height * largura * 3, sizeof(unsigned char));
+    // Calcula o número de linhas para cada rank
+    int num_rows = rows_per_process + (rank < remaining_rows ? 1 : 0);
+
+    // Aloca memória para o array local de pixels
+    int local_area = num_rows * largura * 3;
+    pixel_array = calloc(local_area, sizeof(unsigned char));
     rgb = calloc(3, sizeof(unsigned char));
 
-    // Processamento dos pixels
-    for (int i = local_start; i < local_end; i++) {
+    // Computa os pixels para o rank atual
+    for (int i = 0; i < num_rows; i++) {
         for (int j = 0; j < largura * 3; j += 3) {
-            compute_julia_pixel(j / 3, i, largura, altura, 1.0, rgb);
+            compute_julia_pixel(j / 3, offset + i, largura, altura, 1.0, rgb);
             pixel_array[local_i] = rgb[0];
             local_i++;
             pixel_array[local_i] = rgb[1];
@@ -134,43 +132,22 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // Liberação de memória do array RGB
+    // Cria um arquivo MPI
+    MPI_File output_file;
+    MPI_File_open(MPI_COMM_WORLD, OUTFILE, MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL, &output_file);
+
+    // Calcula o deslocamento global para cada rank
+    MPI_Offset global_offset = offset * largura * 3;
+
+    // Grava os pixels em paralelo, respeitando o deslocamento global
+    MPI_File_write_at(output_file, global_offset, pixel_array, local_area, MPI_UNSIGNED_CHAR, MPI_STATUS_IGNORE);
+
+    // Fecha o arquivo MPI
+    MPI_File_close(&output_file);
+
+    // Libera a memória alocada
     free(rgb);
-
-    // Criação de um arquivo temporário para cada processo
-    char temp_filename[20];
-    sprintf(temp_filename, "temp_%d.bmp", rank);
-    output_file = fopen(temp_filename, "w");
-    write_bmp_header(output_file, largura, local_height);
-    fwrite(pixel_array, sizeof(unsigned char), local_height * largura * 3, output_file);
-    fclose(output_file);
-
-    // Sincronização de todos os processos
-    MPI_Barrier(MPI_COMM_WORLD);
-
-    // O processo de rank 0 realiza a gravação serial dos arquivos em ordem
-    if (rank == 0) {
-        FILE *final_output_file = fopen(OUTFILE, "w");
-        write_bmp_header(final_output_file, largura, altura);
-        for (int i = 0; i < size; i++) {
-            sprintf(temp_filename, "temp_%d.bmp", i);
-            FILE *temp_file = fopen(temp_filename, "r");
-            fseek(temp_file, 54, SEEK_SET); // Ignorar o cabeçalho do arquivo temporário
-            unsigned char *buffer = malloc(local_height * largura * 3 * sizeof(unsigned char));
-            fread(buffer, sizeof(unsigned char), local_height * largura * 3, temp_file);
-            fwrite(buffer, sizeof(unsigned char), local_height * largura * 3, final_output_file);
-            free(buffer);
-            fclose(temp_file);
-            remove(temp_filename); // Remover o arquivo temporário
-        }
-        fclose(final_output_file);
-    }
-
-    // Liberação de memória do array de pixels
     free(pixel_array);
 
-    // Finalização do MPI
     MPI_Finalize();
-
-    return 0;
-}
+    return 0
