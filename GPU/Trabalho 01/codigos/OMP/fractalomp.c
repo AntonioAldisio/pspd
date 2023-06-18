@@ -5,23 +5,21 @@
             Lorrany Oliveira Souza 180113992
 
     Como compilar:
-    $ nvcc fractalcuda.cu -o fractalcuda -lm
+    $ mpicc fractalomp.c -o fractalomp -lm
 
     Como rodar:
-    $ cuda-memcheck ./fractalcuda 1000
-
+    $ mpirun -np 4 fractalomp 1000
 */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include <cuda_runtime.h>
-#define OUTFILE "out_julia_normal_cu.bmp"
+#include <time.h> 
+#define OUTFILE "out_julia_normal.bmp"
 
-__device__ int compute_julia_pixel(int x, int y, int largura, int altura, float tint_bias, unsigned char *rgb) {
+int compute_julia_pixel(int x, int y, int largura, int altura, float tint_bias, unsigned char *rgb) {
   // Check coordinates
   if ((x < 0) || (x >= largura) || (y < 0) || (y >= altura)) {
-    printf("Invalid (%d,%d) pixel coordinates in a %d x %d image\n", x, y, largura, altura);
+    fprintf(stderr,"Invalid (%d,%d) pixel coordinates in a %d x %d image\n", x, y, largura, altura);
     return -1;
   }
   // "Zoom in" to a pleasing view of the Julia set
@@ -52,39 +50,26 @@ __device__ int compute_julia_pixel(int x, int y, int largura, int altura, float 
   return 0;
 } /*fim compute julia pixel */
 
-__global__ void compute_julia_pixels(unsigned char *pixel_array, int largura, int altura) {
-  int x = blockIdx.x * blockDim.x + threadIdx.x;
-  int y = blockIdx.y * blockDim.y + threadIdx.y;
-  int area = largura * altura;
-  if (x < largura && y < altura) {
-    int local_i = (y * largura + x) * 3;
-    unsigned char rgb[3];
-    compute_julia_pixel(x, y, largura, altura, 1.0, rgb);
-    pixel_array[local_i] = rgb[0];
-    pixel_array[local_i + 1] = rgb[1];
-    pixel_array[local_i + 2] = rgb[2];
-  }
-}
-
 int write_bmp_header(FILE *f, int largura, int altura) {
-  unsigned int row_size_in_bytes = largura * 3 + ((largura * 3) % 4 == 0 ? 0 : (4 - (largura * 3) % 4));
+
+  unsigned int row_size_in_bytes = largura * 3 +
+	  ((largura * 3) % 4 == 0 ? 0 : (4 - (largura * 3) % 4));
 
   // Define all fields in the bmp header
-    char id[3] = "BM"; // Alterado o tamanho para 3
-    unsigned int filesize = 54 + (int)(row_size_in_bytes * altura * sizeof(char));
-    short reserved[2] = {0, 0};
-    unsigned int offset = 54;
+  char id[2] = "BM";
+  unsigned int filesize = 54 + (int)(row_size_in_bytes * altura * sizeof(char));
+  short reserved[2] = {0,0};
+  unsigned int offset = 54;
 
-    unsigned int size = 40;
-    unsigned short planes = 1;
-    unsigned short bits = 24;
-    unsigned int compression = 0;
-    unsigned int image_size = largura * altura * 3 * sizeof(char);
-    int x_res = 0;
-    int y_res = 0;
-    unsigned int ncolors = 0;
-    unsigned int importantcolors = 0;
-
+  unsigned int size = 40;
+  unsigned short planes = 1;
+  unsigned short bits = 24;
+  unsigned int compression = 0;
+  unsigned int image_size = largura * altura * 3 * sizeof(char);
+  int x_res = 0;
+  int y_res = 0;
+  unsigned int ncolors = 0;
+  unsigned int importantcolors = 0;
 
   // Write the bytes to the file, keeping track of the
   // number of written "objects"
@@ -111,48 +96,54 @@ int write_bmp_header(FILE *f, int largura, int altura) {
 
 int main(int argc, char *argv[]) {
   int n;
-  int area=0, largura = 0, altura = 0;
+  int area=0, largura = 0, altura = 0, local_i= 0;
   FILE *output_file;
-  unsigned char *pixel_array, *d_pixel_array;
+  unsigned char *pixel_array, *rgb;
 
-  if ((argc <= 1)|(atoi(argv[1])<1)){
-    fprintf(stderr,"Entre 'N' como um inteiro positivo! \n");
+  if ((argc <= 1) | (atoi(argv[1]) < 1)) {
+    fprintf(stderr, "Entre 'N' como um inteiro positivo! \n");
     return -1;
   }
   n = atoi(argv[1]);
-  altura = n; largura = 2*n; area = altura * largura * 3;
+  altura = n;
+  largura = 2 * n;
+  area = altura * largura * 3;
 
-  // Allocate host memory for the pixel array
-  pixel_array = (unsigned char*)malloc(area * sizeof(unsigned char));
+  //Allocate mem for the pixels array
+  pixel_array = calloc(area, sizeof(unsigned char));
+  rgb = calloc(3, sizeof(unsigned char));
+  printf("Computando linhas de pixel %d até %d, para uma área total de %d\n", 0, n - 1, area);
 
-  // Allocate device memory for the pixel array
-  cudaMalloc((void**)&d_pixel_array, area * sizeof(unsigned char));
+  clock_t start_time = clock(); // Registrar o tempo de início
 
-  dim3 threadsPerBlock(16, 16);
-  dim3 numBlocks((largura + threadsPerBlock.x - 1) / threadsPerBlock.x, (altura + threadsPerBlock.y - 1) / threadsPerBlock.y);
+  #pragma omp parallel for
+  for (int i = 0; i < n; i++)
+    for (int j = 0; j < largura * 3; j += 3) {
+      compute_julia_pixel(j / 3, i, largura, altura, 1.0, rgb);
+      pixel_array[local_i] = rgb[0];
+      local_i++;
+      pixel_array[local_i] = rgb[1];
+      local_i++;
+      pixel_array[local_i] = rgb[2];
+      local_i++;
+    }
 
-  printf("Computando linhas de pixel %d até %d, para uma área total de %d\n", 0, n-1, area);
+  clock_t end_time = clock(); // Registrar o tempo de término
 
-  // Copy the pixel array from host to device
-  cudaMemcpy(d_pixel_array, pixel_array, area * sizeof(unsigned char), cudaMemcpyHostToDevice);
+  //Release mem for the pixels array
+  free(rgb);
 
-  // Launch the kernel
-  compute_julia_pixels<<<numBlocks, threadsPerBlock>>>(d_pixel_array, largura, altura);
-
-  // Copy the pixel array from device to host
-  cudaMemcpy(pixel_array, d_pixel_array, area * sizeof(unsigned char), cudaMemcpyDeviceToHost);
-
-  // Free device memory
-  cudaFree(d_pixel_array);
-
-  // Write the BMP file
+  //escreve o cabeçalho do arquivo
   output_file = fopen(OUTFILE, "w");
   write_bmp_header(output_file, largura, altura);
+
+  //escreve o array no arquivo
   fwrite(pixel_array, sizeof(unsigned char), area, output_file);
   fclose(output_file);
-
-  // Free host memory
   free(pixel_array);
 
+  double execution_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
+  printf("Tempo de execução: %.2f segundos\n", execution_time);
+
   return 0;
-} /* fim-programa */
+}
