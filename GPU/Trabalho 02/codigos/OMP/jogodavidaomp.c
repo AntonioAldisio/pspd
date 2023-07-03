@@ -8,7 +8,7 @@
     $ gcc -o omp jogodavidaomp.c -fopenmp
 
     Como rodar:
-    $ ./omp
+    $ OMP_NUM_THREADS=4 ./omp
 
 */
 #include <stdio.h>

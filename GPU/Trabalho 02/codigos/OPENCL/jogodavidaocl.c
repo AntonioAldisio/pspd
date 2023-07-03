@@ -1,3 +1,16 @@
+/*
+    PSPD 2023 - 1
+    Alunos: Antonio Aldisio        202028211
+            Fernando Miranda Calil 190106565
+            Lorrany Oliveira Souza 180113992
+
+    Como compilar:
+    $ gcc jogodavidaocl.c -o vida -lm -lOpenCL -DCL_TARGET_OPENCL_VERSION=300
+
+    Como rodar:
+    $ ./vida
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
@@ -139,7 +152,7 @@ int main(void) {
 
     t2 = wall_time();
 
-    if (Correto(tabulOut, tam))
+    if (!Correto(tabulOut, tam))
       printf("**RESULTADO CORRETO**\n");
     else
       printf("**RESULTADO ERRADO**\n");
