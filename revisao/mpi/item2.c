@@ -10,7 +10,6 @@
     Como rodar:
     $ mpirun -np 4 ./item2
 */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -54,7 +53,7 @@ int main(int argc, char** argv) {
 
         // Imprimir a parte do vetor do master
         for (int i = 0; i < offsets[1]; i++) {
-            printf("Vetor[%d] = %d\n", i, vetor[i]);
+            printf("Worker %d - Vetor[%d] = %d\n", rank, i, vetor[i]);
         }
     }
     // Workers
@@ -65,7 +64,7 @@ int main(int argc, char** argv) {
         // Imprimir a parte do vetor atribuída ao worker
         int end = (rank == size - 1) ? VETOR_SIZE : offset + calcular_offset();
         for (int i = offset; i < end; i++) {
-            printf("Vetor[%d] = %d\n", i, i);
+            printf("Worker %d - Vetor[%d] = %d\n", rank, i, i);
         }
     }
 
