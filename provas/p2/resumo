@@ -1,0 +1,47 @@
+1-
+(f) A execução com o comando OMP_NUM_THREADS=4 t1 vai imprimir o valor 40
+
+(f) Se a linha 9 for suprimida, o binário equivalente acionado com o comando OMP_NUM_THREADS=3 t1
+imprimirá sempre o valor 30
+
+(f) Se na linha 7 for acrescentada a declaração private(i) e houver supressão da linha 9, o binário
+equivalente acionado com o comando OMP_NUM_THREADS=6 t1, o programa vai imprimir 60
+
+(v) A execução com o comando OMP_NUM_THREADS=1 t1 vai imprimir o valor zero para a variável i
+
+(f) Se na linha 7 for acrescentada a declaração private(i), o binário equivalente acionado com o
+comando OMP_NUM_THREADS 2 t1 vai imprimir o valor 20
+
+(v) Ao suprimir a linha 9, o binário equivalente vai imprimir valores aleatórios para a variável i, desde que o
+número de threads seja maior que 1
+
+2- 
+(f) A execução com o comando OMP_NUM_THREADS=4 t1 vai imprimir o valor 4 na linha 5 e o valor 12 na
+linha 10, se o computador onde esse programa estiver rodando tiver 12 núcleos
+
+(v) Este programa vai imprimir sempre o valor 1 na linha 5, independente do número de threads definidos na
+variável OMP_NUM_THREADS
+
+(f) O comando da linha 10 vai imprimir sempre o valor 1, uma vez que este está fora da região paralela
+definida pelo pragma omp parallel.
+
+3-
+(f) A execução com o comando OMP_NUM_THREADS=4 t1 vai imprimir que cada thread foi executada 25
+vezes
+
+(f) Se este programa for acionado tendo a variável OMP_NUM_THREADS um valor maior do que o número
+de núcleos da máquina, apenas as threads equivalentes ao número de núcleos serão criadas.
+
+(f) Se o programa for executado numa máquina com 10 núcleos de processamento e a variável
+OMP_NUM_THREADS estiver com valor igual a 20, o programa não será ativado
+
+5- 
+(f) Se max=14, ao comentar a linha 10, o programa demora em torno de 20 segundos para executar
+
+(?) A execução do programa com OMP_SCHEDULE=static OMP_NUM_THREADS=4 time -p t1
+14 faz o programa demorar em torno de 15 segundos
+
+Os algoritmos de hash consistentes são necessários em redes P2P para garantir uma distribuição eficiente de dados entre os nós da rede, mesmo com a adição ou remoção de nós. Esses algoritmos minimizam a redistribuição de dados, evitando a sobrecarga e atrasos na rede. Um exemplo é o algoritmo "Hash Ring", onde os nós são organizados em um anel virtual e os dados são mapeados com base em valores hash. Ao adicionar ou remover um nó, apenas as posições adjacentes no anel são afetadas, reduzindo a quantidade de dados a serem transferidos. Isso torna o algoritmo de hash consistente uma solução eficiente para redes P2P.
+
+
+
