@@ -12,7 +12,9 @@ sudo apt-mark hold kubelet kubeadm kubectl
 sudo rm /etc/containerd/config.toml
 sudo systemctl restart containerd
 #  Master
+kubeadm config images pull
 sudo kubeadm init
 mkdir -p $HOME/.kube
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
+kubectl create -f https://docs.projectcalico.org/manifests/calico.yaml
