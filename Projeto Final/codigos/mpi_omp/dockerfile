@@ -1,0 +1,11 @@
+FROM ubuntu:latest
+
+RUN apt-get update && apt-get install -y gcc g++ mpich libmpich-dev
+
+WORKDIR /app
+
+COPY jogodavida_mpi_omp.c .
+
+RUN mpicc -fopenmp -o jogodavida_mpi_omp jogodavida_mpi_omp.c
+
+CMD ["mpirun", "-np", "4", "./jogodavida_mpi_omp"]
