@@ -5,8 +5,6 @@
 #include <omp.h>
 
 #define ind2d(i, j) (i)*(tam+2)+j
-#define POWMIN 3
-#define POWMAX 10
 
 double wall_time(void) {
   struct timeval tv;
@@ -77,6 +75,18 @@ int Correto(int* tabul, int tam) {
 }
 
 int main(int argc, char** argv) {
+  if (argc != 3) {
+    printf("Usage: %s POWMIN POWMAX\n", argv[0]);
+    return 1;
+  }
+
+  int powmin = atoi(argv[1]);
+  int powmax = atoi(argv[2]);
+
+  if (powmin <= 0 || powmax <= 0 || powmin > powmax) {
+    printf("Valores invalidos\n");
+    return 1;
+  }
   int pow, rank = 0, size = 0;
   int i, tam, *tabulIn, *tabulOut;
   char msg[9];
@@ -86,7 +96,7 @@ int main(int argc, char** argv) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-  for (pow = POWMIN; pow <= POWMAX; pow++) {
+  for (pow = powmin; pow <= powmax; pow++) {
     tam = 1 << pow;
 
     t0 = wall_time();
