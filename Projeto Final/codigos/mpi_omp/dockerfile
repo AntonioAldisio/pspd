@@ -4,6 +4,8 @@ RUN apt-get update && apt-get install -y gcc g++ mpich libmpich-dev
 
 WORKDIR /app
 
+RUN pip install elasticsearch confluent_kafka
+
 COPY . .
 
 RUN mpicc -fopenmp -o teste jogodavida_mpi_omp.c

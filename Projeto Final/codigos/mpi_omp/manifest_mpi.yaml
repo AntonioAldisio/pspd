@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jogodavida-deployment
+  namespace: jogodavida
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jogodavida
+  template:
+    metadata:
+      labels:
+        app: jogodavida
+    spec:
+      containers:
+      - name: jogodavida-container-mpi
+        image: registry.digitalocean.com/pspd/mpi:0.0.19
+        ports:
+        - containerPort: 9092
