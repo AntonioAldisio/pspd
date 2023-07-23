@@ -93,7 +93,7 @@ int main(int argc, char** argv) {
   double t0, t1, t2, t3;
 
   FILE *output_file;
-  output_file = fopen("output.txt", "w"); // Open the file in write mode
+  output_file = fopen("outputmpi.txt", "w"); // Open the file in write mode
 
   MPI_Init(&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -130,9 +130,9 @@ int main(int argc, char** argv) {
 
     if (rank == 0) {
       if (Correto(tabulIn, tam))
-        fprintf(output_file, "*RESULTADO CORRETO*\n");
+        fprintf(output_file, "*RESULTADO CORRETO (Mpi)*\n");
       else
-        fprintf(output_file, "*RESULTADO ERRADO*\n");
+        fprintf(output_file, "*RESULTADO ERRADO (Mpi)*\n");
 
       t3 = wall_time();
 

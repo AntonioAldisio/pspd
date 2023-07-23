@@ -4,16 +4,20 @@ from elasticsearch import Elasticsearch
 import subprocess
 import os 
 
-# Fechando conexao com Elasticsearch
-es = Elasticsearch([{'host': '10.245.217.227', 'port': 9200}])
+es = Elasticsearch(['http://a190106565:fernandocalil@cm1:9200'])
 
 
 def call_c_program(mensagem):
-  powmin, powmax = mensagem.split()
+  powmin, powmax, codeSelector = mensagem.split()
   powmin = powmin.decode('utf-8')
   powmax = powmax.decode('utf-8')
+  codeSelector = codeSelector.decode('utf-8')
 
-  os.system(f"OMP_NUM_THREADS=4 mpirun -np  4 ./teste {powmin} {powmax}")
+  if (codeSelector == 'mpi'):
+    os.system(f"OMP_NUM_THREADS=4 mpirun -np  4 ./teste {powmin} {powmax}")
+  else:
+    os.system(f"python3 ../spark/jogodavida.py {powmin} {powmax}")
+  read_file_and_send_to_es(codeSelector)
 
 def consume_kafka_topic(topic, brokers):
   consumer = Consumer({
@@ -44,16 +48,16 @@ def consume_kafka_topic(topic, brokers):
     pass
   finally:
     consumer.close()
-  read_file_and_send_to_es()
 
-def read_file_and_send_to_es():
+def read_file_and_send_to_es(codeSelector):
   try:
-    with open('./output.txt', 'r') as file:
+    with open(f'./output{codeSelector}.txt', 'r') as file:
       file_content = file.read()
 
-      document = { 'content': file_content }
+      document = {'content': file_content}
 
-      es.index(index=python-elasticsearch, body=document)
+      index_name = 'student-a190106565-saida'
+      es.index(index=index_name, body=document)
       print("Enviado com sucesso.")
   except Exception as e:
       print(f"Erro: {e}")

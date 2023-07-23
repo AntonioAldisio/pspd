@@ -1,5 +1,6 @@
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
+import sys
 
 
 def ind2d(i, j, tam):
@@ -88,11 +89,11 @@ def main():
         t2 = wall_time()
 
         if Correto(tabulIn, tam):
-            print("**RESULTADO CORRETO**")
-            result_str +="**RESULTADO CORRETO**"
+            print("**RESULTADO CORRETO (Spark)**")
+            result_str +="**RESULTADO CORRETO (Spark)**"
         else:
-            print("**RESULTADO ERRADO**")
-            result_str +="**RESULTADO ERRADO**"
+            print("**RESULTADO ERRADO (Spark)**")
+            result_str +="**RESULTADO ERRADO (Spark)**"
 
         t3 = wall_time()
         print(f"tam={tam}; tempos: init={t1-t0:.7f}, comp={t2-t1:.7f}, fim={t3-t2:.7f}, tot={t3-t0:.7f}")
@@ -104,5 +105,5 @@ def main():
 if __name__ == "__main__":
     result = main()
 
-    with open("result.txt", "w") as file:
+    with open("outputspark.txt", "w") as file:
         file.write(result)
