@@ -1,11 +1,13 @@
-FROM ubuntu:latest
+FROM python:3.10.12-slim-bullseye
 
 RUN apt-get update && apt-get install -y gcc g++ mpich libmpich-dev
 
 WORKDIR /app
 
-COPY jogodavida_mpi_omp.c .
+COPY . .
 
-RUN mpicc -fopenmp -o jogodavida_mpi_omp jogodavida_mpi_omp.c
+RUN mpicc -fopenmp -o teste jogodavida_mpi_omp.c
 
-CMD ["mpirun", "-np", "4", "./jogodavida_mpi_omp"]
+EXPOSE 9092
+
+CMD ["python", "teste.py"]
