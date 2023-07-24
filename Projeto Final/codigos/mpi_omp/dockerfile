@@ -4,12 +4,14 @@ RUN apt-get update && apt-get install -y gcc g++ mpich libmpich-dev
 
 WORKDIR /app
 
-RUN pip install elasticsearch confluent_kafka
+COPY ./start.sh /usr/bin/start.sh
+
+RUN pip install elasticsearch confluent_kafka && mkdir -p /usr/bin/
 
 COPY . .
 
 RUN mpicc -fopenmp -o teste jogodavida_mpi_omp.c
 
-EXPOSE 9092
+RUN chmod +x /usr/bin/start.sh
 
-CMD ["python", "teste.py"]
+ENTRYPOINT [ "start.sh" ]

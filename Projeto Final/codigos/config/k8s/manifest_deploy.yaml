@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: jogodavida-deployment
-  namespace: jogodavida
+  namespace: kafka
 spec:
   replicas: 1
   selector:
@@ -15,6 +15,6 @@ spec:
     spec:
       containers:
       - name: jogodavida-container-mpi
-        image: registry.digitalocean.com/pspd/mpi:0.0.19
-        ports:
-        - containerPort: 9092
+        image: registry.digitalocean.com/pspd/mpi:1.0.0
+      - name: jogodavida-container-spark
+        image: registry.digitalocean.com/pspd/spark:1.0.0
