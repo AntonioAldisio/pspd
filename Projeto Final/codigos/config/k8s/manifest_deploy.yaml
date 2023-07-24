@@ -14,7 +14,5 @@ spec:
         app: jogodavida
     spec:
       containers:
-      - name: jogodavida-container-mpi
-        image: registry.digitalocean.com/pspd/mpi:1.0.0
-      - name: jogodavida-container-spark
-        image: registry.digitalocean.com/pspd/spark:1.0.0
+      - name: jogodavida-container-mpispark
+        image: registry.digitalocean.com/pspd/mpispark:0.0.2
