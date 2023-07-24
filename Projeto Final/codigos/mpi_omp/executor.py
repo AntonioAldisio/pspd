@@ -19,38 +19,38 @@ def call_c_program(mensagem):
     os.system(f"python3 jogodavida.py {powmin} {powmax}")
     read_file_and_send_to_es(codeSelector)
 
-  def consume_kafka_topic(topic):
-    consumer = Consumer({
-      'bootstrap.servers': '10.245.179.235:9092',
-      'group.id': 'foo',
-      'auto.offset.reset': 'earliest',
-      'session.timeout.ms': 6000,
-    })
+def consume_kafka_topic(topic):
+  consumer = Consumer({
+    'bootstrap.servers': '10.245.179.235:9092',
+    'group.id': 'foo',
+    'auto.offset.reset': 'earliest',
+    'session.timeout.ms': 6000,
+  })
 
-    try:
-      consumer.subscribe([topic])
-      while True:
-        msg = consumer.poll(1.0)
+  try:
+    consumer.subscribe([topic])
+    while True:
+      msg = consumer.poll(1.0)
 
-        if msg is None:
+      if msg is None:
+        continue
+      if msg.error():
+        if msg.error().code() == KafkaError._PARTITION_EOF:
           continue
-        if msg.error():
-          if msg.error().code() == KafkaError._PARTITION_EOF:
-            continue
-          else:
-            print(f"Erro: {msg.error()}")
-            break
+        else:
+          print(f"Erro: {msg.error()}")
+          break
 
-        print(f"Valor recebido do kafka: {msg.value()}")
+      print(f"Valor recebido do kafka: {msg.value()}")
 
-        call_c_program(msg.value())
+      call_c_program(msg.value())
 
-    except KeyboardInterrupt:
-      pass
-    except Exception as e:
-      print(f"An error occurred in the Kafka consumer: {e}")
-    finally:
-        consumer.close()
+  except KeyboardInterrupt:
+    pass
+  except Exception as e:
+    print(f"An error occurred in the Kafka consumer: {e}")
+  finally:
+      consumer.close()
 
 def read_file_and_send_to_es(codeSelector):
   try:
