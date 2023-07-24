@@ -14,7 +14,7 @@ def call_c_program(mensagem):
   codeSelector = codeSelector.decode('utf-8')
 
   if (codeSelector == 'mpi'):
-    os.system(f"OMP_NUM_THREADS=2 mpirun -np  2 ./teste {powmin} {powmax}")
+    os.system(f"OMP_NUM_THREADS=2 mpirun -np  2 ./vida {powmin} {powmax}")
   else:
     os.system(f"python3 jogodavida_spark.py {powmin} {powmax}")
     read_file_and_send_to_es(codeSelector)

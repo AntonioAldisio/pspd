@@ -15,4 +15,4 @@ spec:
     spec:
       containers:
       - name: jogodavida-container-mpispark
-        image: registry.digitalocean.com/pspd/mpispark:0.0.2
+        image: registry.digitalocean.com/pspd/mpi:0.0.22

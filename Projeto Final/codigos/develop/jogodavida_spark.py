@@ -45,7 +45,7 @@ def Correto(tabul, tam):
 
 if __name__ == "__main__":
     sc = SparkContext(appName="GameOfLife")
-
+    result = ""
     if len(sys.argv) != 3:
         print("Usage: python3 jogo.py POWMIN POWMAX")
         sys.exit(1)
@@ -66,7 +66,6 @@ if __name__ == "__main__":
 
         iterations = 2 * (tam - 3)
         for _ in range(iterations):
-            # Broadcast the current tabulIn to all workers
             broadcasted_tabulIn = sc.broadcast(tabulIn)
 
             # Create an RDD for parallel computation
@@ -86,14 +85,19 @@ if __name__ == "__main__":
         if sc.getConf().get('spark.driver.host') == 'localhost':
             if global_is_correct:
                 print("**Ok, RESULTADO CORRETO**")
+                result += "**Ok, RESULTADO CORRETO**"
             else:
                 print("**Nok, RESULTADO ERRADO**")
+                result += "**Nok, RESULTADO ERRADO**"
 
         t3 = wall_time()
         print("----------------------RESULTADO---------------------------")
         print("tam=%d; tempos: init=%7.7f, comp=%7.7f, fim=%7.7f, tot=%7.7f" %
               (tam, t1 - t0, t2 - t1, t3 - t2, t3 - t0))
         print("----------------------RESULTADO---------------------------\n\n")
-        
+        result += "tam=%d; tempos: init=%7.7f, comp=%7.7f, fim=%7.7f, tot=%7.7f" %(tam, t1 - t0, t2 - t1, t3 - t2, t3 - t0)
+
+        with open("outputspark.txt", "w") as file:
+            file.write(result)
 
     sc.stop()
