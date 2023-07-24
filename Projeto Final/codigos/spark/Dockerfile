@@ -4,9 +4,9 @@ RUN apt-get update
 
 WORKDIR /app
 
-COPY ./start.sh /usr/bin/start.sh
 
 RUN pip install elasticsearch confluent_kafka pyspark && mkdir -p /usr/bin/
+COPY ./start.sh /usr/bin/start.sh
 
 COPY . .
 
